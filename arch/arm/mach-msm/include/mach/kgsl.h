@@ -13,6 +13,7 @@
 #ifndef _ARCH_ARM_MACH_KGSL_H
 #define _ARCH_ARM_MACH_KGSL_H
 
+/* Clock flags to show which clocks should be controled by a given platform */
 #define KGSL_CLK_SRC	0x00000001
 #define KGSL_CLK_CORE	0x00000002
 #define KGSL_CLK_IFACE	0x00000004
@@ -20,7 +21,7 @@
 #define KGSL_CLK_MEM_IFACE 0x00000010
 #define KGSL_CLK_AXI	0x00000020
 
-#define KGSL_MAX_PWRLEVELS 7
+#define KGSL_MAX_PWRLEVELS 5
 
 #define KGSL_CONVERT_TO_MBPS(val) \
 	(val*1000*1000U)
@@ -76,7 +77,6 @@ struct kgsl_device_platform_data {
 	int iommu_count;
 	struct msm_dcvs_core_info *core_info;
 	unsigned int chipid;
-	unsigned int snapshot_address;
 };
 
 #endif
