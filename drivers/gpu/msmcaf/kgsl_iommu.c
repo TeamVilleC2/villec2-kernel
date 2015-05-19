@@ -268,7 +268,7 @@ static void _check_if_freed(struct kgsl_iommu_device *iommu_dev,
 }
 
 static int kgsl_iommu_fault_handler(struct iommu_domain *domain,
-	struct device *dev, unsigned long addr, int flags, void *token)
+	struct device *dev, unsigned long addr, int flags)
 {
 	int ret = 0;
 	struct kgsl_mmu *mmu;
@@ -642,7 +642,7 @@ void *kgsl_iommu_create_pagetable(void)
 		return NULL;
 	} else {
 		iommu_set_fault_handler(iommu_pt->domain,
-			kgsl_iommu_fault_handler, NULL);
+			kgsl_iommu_fault_handler);
 	}
 
 	return iommu_pt;
@@ -1214,10 +1214,12 @@ static int kgsl_iommu_setup_regs(struct kgsl_mmu *mmu,
 
 	return 0;
 err:
-	for (i--; i >= 0; i--)
+	for (i--; i >= 0; i--) {
 		kgsl_mmu_unmap(pt,
 				&(iommu->iommu_units[i].reg_map));
-
+		kgsl_mmu_put_gpuaddr(pt,
+				&(iommu->iommu_units[i].reg_map));
+	}
 	return status;
 }
 
@@ -1235,11 +1237,17 @@ static void kgsl_iommu_cleanup_regs(struct kgsl_mmu *mmu,
 {
 	struct kgsl_iommu *iommu = mmu->priv;
 	int i;
-	for (i = 0; i < iommu->unit_count; i++)
+	for (i = 0; i < iommu->unit_count; i++){
 		kgsl_mmu_unmap(pt, &(iommu->iommu_units[i].reg_map));
+		kgsl_mmu_put_gpuaddr(pt,
+				&(iommu->iommu_units[i].reg_map));
+	}
 
-	if (iommu->sync_lock_desc.gpuaddr)
+	if (iommu->sync_lock_desc.gpuaddr) {
 		kgsl_mmu_unmap(pt, &iommu->sync_lock_desc);
+		kgsl_mmu_put_gpuaddr(pt,
+				&iommu->sync_lock_desc);
+	}
 }
 
 
@@ -1565,7 +1573,7 @@ kgsl_iommu_unmap(void *mmu_specific_pt,
 	   functions purturb the gpuaddr with an offset, so apply the
 	   mask here to make sure we have the right address */
 
-	unsigned int gpuaddr = memdesc->gpuaddr &  KGSL_MMU_ALIGN_MASK;
+	unsigned int gpuaddr = memdesc->gpuaddr &  KGSL_IOMMU_ALIGN_MASK;
 
 	if (range == 0 || gpuaddr == 0)
 		return 0;
