@@ -570,10 +570,9 @@ struct msmfb_metadata {
 #define MDP_BUF_SYNC_FLAG_WAIT	1
 
 struct mdp_buf_sync {
-	uint32_t flags;
-	uint32_t acq_fen_fd_cnt;
-	int *acq_fen_fd;
-	int *rel_fen_fd;
+ 	uint32_t acq_fen_fd_cnt;
+ 	int *acq_fen_fd;
+ 	int *rel_fen_fd;
 	int *retire_fen_fd;
 };
 
