@@ -44,10 +44,6 @@
 #endif
 #include "mipi_dsi.h"
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#undef CONFIG_HAS_EARLYSUSPEND
-#endif
-
 uint32 mdp4_extn_disp;
 u32 mdp_iommu_max_map_size;
 static struct clk *mdp_clk;
@@ -557,6 +553,11 @@ static int mdp_lut_hw_update(struct fb_cmap *cmap)
 	c[1] = cmap->blue;
 	c[2] = cmap->red;
 
+	if (cmap->start > MDP_HIST_LUT_SIZE || cmap->len > MDP_HIST_LUT_SIZE ||
+			(cmap->start + cmap->len > MDP_HIST_LUT_SIZE)) {
+		pr_err("mdp_lut_hw_update invalid arguments\n");
+		return -EINVAL;
+	}
 	for (i = 0; i < cmap->len; i++) {
 		if (copy_from_user(&r, cmap->red++, sizeof(r)) ||
 		    copy_from_user(&g, cmap->green++, sizeof(g)) ||
@@ -2630,12 +2631,12 @@ int mdp_bus_scale_update_request(u64 ab_p0, u64 ib_p0, u64 ab_p1, u64 ib_p1)
 	ib_p1 = max(ib_p1, ab_p1);
 	mdp_bus_usecases[bus_index].vectors[1].ib = min(ib_p1, mdp_max_bw);
 
-	pr_debug("%s: handle=%d index=%d ab=%u ib=%u\n", __func__,
+	pr_debug("%s: handle=%d index=%d ab=%llu ib=%llu\n", __func__,
 		 (u32)mdp_bus_scale_handle, bus_index,
 		 mdp_bus_usecases[bus_index].vectors[0].ab,
 		 mdp_bus_usecases[bus_index].vectors[0].ib);
 
-	pr_debug("%s: p1 handle=%d index=%d ab=%u ib=%u\n", __func__,
+	pr_debug("%s: p1 handle=%d index=%d ab=%llu ib=%llu\n", __func__,
 		 (u32)mdp_bus_scale_handle, bus_index,
 		 mdp_bus_usecases[bus_index].vectors[1].ab,
 		 mdp_bus_usecases[bus_index].vectors[1].ib);
@@ -2645,10 +2646,10 @@ int mdp_bus_scale_update_request(u64 ab_p0, u64 ib_p0, u64 ab_p1, u64 ib_p1)
 }
 static int mdp_bus_scale_restore_request(void)
 {
-	pr_debug("%s: index=%d ab_p0=%u ib_p0=%u\n", __func__, bus_index,
+	pr_debug("%s: index=%d ab_p0=%llu ib_p0=%llu\n", __func__, bus_index,
 		 mdp_bus_usecases[bus_index].vectors[0].ab,
 		 mdp_bus_usecases[bus_index].vectors[0].ib);
-	pr_debug("%s: index=%d ab_p1=%u ib_p1=%u\n", __func__, bus_index,
+	pr_debug("%s: index=%d ab_p1=%llu ib_p1=%llu\n", __func__, bus_index,
 		 mdp_bus_usecases[bus_index].vectors[1].ab,
 		 mdp_bus_usecases[bus_index].vectors[1].ib);
 
@@ -3430,16 +3431,12 @@ static void mdp_early_suspend(struct early_suspend *h)
 #ifdef CONFIG_FB_MSM_DTV
 	mdp4_dtv_set_black_screen();
 #endif
-#if 0
 	mdp_footswitch_ctrl(FALSE);
-#endif
 }
 
 static void mdp_early_resume(struct early_suspend *h)
 {
-#if 0
 	mdp_footswitch_ctrl(TRUE);
-#endif
 	mutex_lock(&mdp_suspend_mutex);
 	mdp_suspended = FALSE;
 	mutex_unlock(&mdp_suspend_mutex);
